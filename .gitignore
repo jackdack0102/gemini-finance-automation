@@ -1,0 +1,12 @@
+# Ignore local Google Apps Script auth files
+.clasp.json
+.clasprc.json
+
+# Ignore Terraform sensitive state and local files
+*.tfvars
+terraform.tfstate
+terraform.tfstate.backup
+.terraform/
+
+# Ignore any local secret files
+secret.tfvars

@@ -1,0 +1,19 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 18
+    commands:
+      - npm install -g @google/clasp
+  pre_build:
+    commands:
+      # Bốc cái Secret từ AWS Secrets Manager ra thành file để Clasp dùng
+      - echo $CLASP_AUTH > ~/.clasprc.json
+  build:
+    commands:
+      - echo "Pushing code to Google Apps Script..."
+      - clasp push -f
+artifacts:
+  files:
+    - '**/*'
