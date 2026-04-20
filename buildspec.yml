@@ -8,8 +8,8 @@ phases:
       - npm install -g @google/clasp
   pre_build:
     commands:
-      # Putting Secret From AWS Secrets Manager Into File For Clasp 
-      - echo $CLASP_AUTH > ~/.clasprc.json
+      # Retrieve the actual secret value from AWS Secrets Manager
+      - aws secretsmanager get-secret-value --secret-id clasp/auth/google --query SecretString --output text > ~/.clasprc.json
   build:
     commands:
       - echo "Pushing code to Google Apps Script..."
