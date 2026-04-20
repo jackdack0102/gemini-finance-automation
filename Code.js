@@ -4,7 +4,7 @@
  */
 
 const GEMINI_API_KEY = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
-// Use the correct gemini-2.0-flash model ID that I scanned
+// Use the correct gemini-2.0-flash model ID that was scanned
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
 
 
@@ -119,7 +119,7 @@ function extractTextFromDrive(url) {
     const resource = { title: "temp_ocr_" + fileId, mimeType: "application/vnd.google-apps.document" };
     const tempDocFile = Drive.Files.insert(resource, blob, { ocr: true });
     const text = DocumentApp.openById(tempDocFile.id).getBody().getText();
-    Drive.Files.remove(tempDocFile.id);
+    Drive.Files.remove(tempDocFile.id); 
     return text.substring(0, 40000);
   } catch (err) {
     return blob.getDataAsString("UTF-8").substring(0, 40000);
@@ -228,6 +228,6 @@ function listAllDocLinksToSheet() {
   }
 }
 
-//test triggered codebuild
 
+//test
 
