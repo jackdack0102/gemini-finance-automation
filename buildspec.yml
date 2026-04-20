@@ -20,9 +20,9 @@ phases:
       - echo "=== File check complete ==="
   build:
     commands:
-      - echo "Attempting clasp push..."
-      - clasp push -f --verbose 2>&1 || echo "Push failed, checking details..."
-      - echo "Checking if files exist:" && ls -la Code.js appsscript.json
+      - echo "Attempting clasp push to Google Apps Script..."
+      - clasp push -f
+      - echo "Successfully pushed to Google Apps Script!"
 artifacts:
   files:
     - '**/*'
