@@ -10,6 +10,10 @@ phases:
     commands:
       # Retrieve the actual secret value from AWS Secrets Manager
       - aws secretsmanager get-secret-value --secret-id clasp/auth/google --query SecretString --output text > ~/.clasprc.json
+      # Debug: Check if file was created and has content
+      - echo "=== Checking .clasprc.json ===" 
+      - cat ~/.clasprc.json
+      - echo "=== File check complete ==="
   build:
     commands:
       - echo "Pushing code to Google Apps Script..."
