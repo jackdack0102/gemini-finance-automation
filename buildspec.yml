@@ -8,7 +8,7 @@ phases:
       - npm install -g @google/clasp
   pre_build:
     commands:
-      # Bốc cái Secret từ AWS Secrets Manager ra thành file để Clasp dùng
+      # Putting Secret From AWS Secrets Manager Into File For Clasp 
       - echo $CLASP_AUTH > ~/.clasprc.json
   build:
     commands:

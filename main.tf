@@ -1,40 +1,39 @@
-# 1. Tạo Secret trong Secrets Manager để chứa file .clasprc.json
+# 1. Create Secret in Secrets Manager to store .clasprc.json file
 resource "aws_secretsmanager_secret" "clasp_auth" {
   name        = "clasp/auth/google"
   description = "Token Login Google Apps Script"
 }
-
-#1.1 Add Instance
-resource "aws_instance" "my_instance" {
-  ami           = "ami-005c9e06a21d032e4" # Bạn tự điền AMI của bạn
-  instance_type = "t2.micro"
-  
-  # Gắn Instance Profile vào đây
-  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
-
-  # Đây là bước "injection" secret vào file
-  user_data = <<-EOF
-              #!/bin/bash
-              # Cài đặt công cụ cần thiết (đảm bảo instance có awscli và jq)
-              sudo apt-get update && sudo apt-get install -y awscli jq
-              
-              # Lấy secret từ AWS và lưu vào .clasprc.json
-              aws secretsmanager get-secret-value \
-                --secret-id ${aws_secretsmanager_secret.clasp_auth.name} \
-                --query SecretString --output text > /home/ubuntu/.clasprc.json
-              
-              # Cấp quyền cho user (giả sử là ubuntu)
-              chown ubuntu:ubuntu /home/ubuntu/.clasprc.json
-              EOF
-}
-
-
 resource "aws_secretsmanager_secret_version" "clasp_auth_val" {
   secret_id     = aws_secretsmanager_secret.clasp_auth.id
   secret_string = var.google_auth_token
 }
 
-# 2. Tạo IAM Role cho CodeBuild (để nó có quyền bốc cái Secret ở trên)
+
+#1.1 Add Instance
+resource "aws_instance" "my_instance" {
+  ami           = "ami-005c9e06a21d032e4" 
+  
+  # Attach Instance Profile here
+  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
+
+  # This is the step to inject secret into file
+  user_data = <<-EOF
+              #!/bin/bash
+              # Install necessary tools (ensure instance has awscli and jq)
+              sudo apt-get update && sudo apt-get install -y awscli jq
+              
+              # Get secret from AWS and save to .clasprc.json
+              aws secretsmanager get-secret-value \
+                --secret-id ${aws_secretsmanager_secret.clasp_auth.name} \
+                --query SecretString --output text > /home/ubuntu/.clasprc.json
+              
+              # Grant permissions to user (assumed to be ubuntu)
+              chown ubuntu:ubuntu /home/ubuntu/.clasprc.json
+              EOF
+}
+
+
+# 2. Create IAM Role for CodeBuild (so it has permission to access the Secret above)
 resource "aws_iam_role" "codebuild_role" {
   name = "gemini_automation_codebuild_role"
 
@@ -52,7 +51,7 @@ resource "aws_iam_role" "codebuild_role" {
   })
 }
 
-# 3. Cấp quyền cho Role được phép đọc Secret
+# 3. Grant permission to Role to read Secret
 resource "aws_iam_role_policy" "codebuild_policy" {
   role = aws_iam_role.codebuild_role.name
   name = "codebuild_secret_policy"
@@ -74,7 +73,7 @@ resource "aws_iam_role_policy" "codebuild_policy" {
   })
 }
 
-# 4. Tạo Project CodeBuild
+# 4. Create CodeBuild Project
 resource "aws_codebuild_project" "gemini_deploy" {
   name          = "gemini-gas-deploy"
   service_role  = aws_iam_role.codebuild_role.arn
@@ -85,11 +84,11 @@ resource "aws_codebuild_project" "gemini_deploy" {
 
   environment {
     compute_type                = "BUILD_GENERAL1_SMALL"
-    image                       = "aws/codebuild/standard:7.0" # Có sẵn Node.js
+    image                       = "aws/codebuild/standard:7.0" # Has Node.js pre-installed
     type                        = "LINUX_CONTAINER"
     privileged_mode             = false
 
-    # Gắn Secret vào biến môi trường luôn
+    # Attach Secret to environment variable
     environment_variable {
       name  = "CLASP_AUTH"
       value = aws_secretsmanager_secret.clasp_auth.name
@@ -104,7 +103,27 @@ resource "aws_codebuild_project" "gemini_deploy" {
   }
 }
 
-# 5. Tạo Role cho EC2
+# 4.1 Create GitHub Webhook to trigger CodeBuild on push
+resource "aws_codebuild_webhook" "github_webhook" {
+  project_name = aws_codebuild_project.gemini_deploy.name
+  
+  # Trigger on push events to main/master branch
+  filter_group {
+    filter {
+      type                = "EVENT"
+      pattern             = "PUSH"
+    }
+    filter {
+      type                = "HEAD_REF"
+      pattern             = "^(refs/heads/main|refs/heads/master)$"
+      exclude_matched_pattern = false
+    }
+  }
+
+  build_type = "BUILD"
+}
+
+# 5. Create Role for EC2
 resource "aws_iam_role" "ec2_role" {
   name = "gemini_ec2_clasp_role"
 
@@ -118,7 +137,7 @@ resource "aws_iam_role" "ec2_role" {
   })
 }
 
-# 6. Cấp quyền cho Role này được đọc Secret cụ thể
+# 6. Grant permission to this Role to read specific Secret
 resource "aws_iam_role_policy" "ec2_secret_policy" {
   role = aws_iam_role.ec2_role.id
   name = "ec2_secret_policy"
@@ -132,7 +151,7 @@ resource "aws_iam_role_policy" "ec2_secret_policy" {
   })
 }
 
-# 7. Tạo Instance Profile (cái này dùng để gắn vào EC2)
+# 7. Create Instance Profile (this is used to attach to EC2)
 resource "aws_iam_instance_profile" "ec2_profile" {
   name = "gemini_ec2_profile"
   role = aws_iam_role.ec2_role.name
