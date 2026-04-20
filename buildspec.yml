@@ -13,11 +13,16 @@ phases:
       # Debug: Check file content
       - echo "=== Checking .clasprc.json ===" 
       - cat ~/.clasprc.json
+      - echo "Current directory:" && pwd
+      - echo "Files in directory:" && ls -la
+      - echo "Contents of .clasp.json:" && cat .clasp.json
+      - echo "Contents of .clasprc.json:" && cat ~/.clasprc.json | head -20
       - echo "=== File check complete ==="
   build:
     commands:
-      - echo "Pushing code to Google Apps Script..."
-      - clasp push -f
+      - echo "Attempting clasp push..."
+      - clasp push -f --verbose 2>&1 || echo "Push failed, checking details..."
+      - echo "Checking if files exist:" && ls -la Code.js appsscript.json
 artifacts:
   files:
     - '**/*'
