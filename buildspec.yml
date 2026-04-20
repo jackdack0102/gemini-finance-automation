@@ -8,12 +8,10 @@ phases:
       - npm install -g @google/clasp
   pre_build:
     commands:
-      # Retrieve secret from AWS and convert to clasp format
-      - aws secretsmanager get-secret-value --secret-id clasp/auth/google --query SecretString --output text | jq '.tokens.default' > ~/.clasprc.json
-      # Debug: Verify the token file
-      - echo "Token file created successfully"
-      - echo "First 5 lines of .clasprc.json:"
-      - head -5 ~/.clasprc.json
+      # Retrieve secret from AWS and save directly (it already has the correct clasp format)
+      - aws secretsmanager get-secret-value --secret-id clasp/auth/google --query SecretString --output text > ~/.clasprc.json
+      # Verify access_token is present in the file
+      - grep -q "access_token" ~/.clasprc.json && echo "✓ access_token found" || echo "✗ access_token NOT found"
   build:
     commands:
       - echo "Attempting clasp push to Google Apps Script..."

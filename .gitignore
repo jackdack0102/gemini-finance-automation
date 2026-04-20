@@ -1,5 +1,5 @@
 # Ignore local Google Apps Script auth files
-.clasp.json
+
 .clasprc.json
 
 # Ignore Terraform sensitive state and local files
