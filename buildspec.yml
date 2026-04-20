@@ -8,8 +8,8 @@ phases:
       - npm install -g @google/clasp
   pre_build:
     commands:
-      # Retrieve the actual secret value from AWS Secrets Manager
-      - aws secretsmanager get-secret-value --secret-id clasp/auth/google --query SecretString --output text > ~/.clasprc.json
+      # Retrieve secret from AWS and reformat for clasp (extract from nested structure)
+      - aws secretsmanager get-secret-value --secret-id clasp/auth/google --query SecretString --output text | jq '{access_token: .tokens.default.access_token, client_id: .tokens.default.client_id, client_secret: .tokens.default.client_secret, refresh_token: .tokens.default.refresh_token}' > ~/.clasprc.json
       # Debug: Check if file was created and has content
       - echo "=== Checking .clasprc.json ===" 
       - cat ~/.clasprc.json
