@@ -1,28 +1,28 @@
 /**
  * AI AUTOMATION FOR FINANCIAL REPORTS - BATCH PROCESSING
- * Cột A: URL Drive | Cột B: Tóm tắt | Cột C: Rủi ro | Cột D: Dự đoán
+ * Column A: URL Drive | Column B: Summary | Column C: Risk | Column D: Prediction
  */
 
 const GEMINI_API_KEY = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
-// Dùng đúng ID model gemini-2.0-flash mà m đã quét được
+// Use the correct gemini-2.0-flash model ID that I scanned
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
 
 
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu('🚀 AI Automation')
-      .addItem('➡️ Chạy toàn bộ danh sách (Cột A)', 'runBatchAutomation')
-      .addItem('🎯 Phân tích ô đang chọn', 'runAutomation')
+      .addItem('➡️ Run entire list (Column A)', 'runBatchAutomation')
+      .addItem('🎯 Analyze selected cell', 'runAutomation')
       .addSeparator()
-      .addSubMenu(ui.createMenu('📂 Công cụ Drive')
-          .addItem('1. Convert PDF sang Doc (OCR)', 'convertAllPdfInFolder')
-          .addItem('2. Đổ link Doc vào cột A', 'listAllDocLinksToSheet'))
+      .addSubMenu(ui.createMenu('📂 Drive Tools')
+          .addItem('1. Convert PDF to Doc (OCR)', 'convertAllPdfInFolder')
+          .addItem('2. Add Doc links to Column A', 'listAllDocLinksToSheet'))
       .addSeparator()
       .addToUi();
 }
 
 /**
- * QUÉT TOÀN BỘ CỘT A VÀ XỬ LÝ
+ * SCAN ENTIRE COLUMN A AND PROCESS
  */
 function runBatchAutomation() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -30,11 +30,11 @@ function runBatchAutomation() {
   const lastRow = sheet.getLastRow();
   
   if (lastRow < 2) {
-    ss.toast("❌ Không có dữ liệu để chạy (bắt đầu từ hàng 2).", "Lỗi");
+    ss.toast("❌ No data to process (start from row 2).", "Error");
     return;
   }
 
-  // Lấy data từ A2 đến hàng cuối cùng
+  // Get data from A2 to the last row
   const rangeA = sheet.getRange(2, 1, lastRow - 1, 1);
   const urls = rangeA.getValues();
   
@@ -45,14 +45,14 @@ function runBatchAutomation() {
     if (!url || url.toString().trim() === "") continue;
 
     try {
-      // Kiểm tra nếu ô B đã có dữ liệu thì bỏ qua (trừ khi là lỗi)
+      // Check if column B already has data, skip if it does (except for errors)
       const currentResult = sheet.getRange(currentRow, 2).getValue();
-      if (currentResult && !currentResult.toString().includes("Lỗi")) {
-        console.log(`Hàng ${currentRow} đã có dữ liệu, bỏ qua.`);
+      if (currentResult && !currentResult.toString().includes("Error")) {
+        console.log(`Row ${currentRow} already has data, skipping.`);
         continue;
       }
 
-      ss.toast(`⏳ Đang xử lý hàng ${currentRow}/${lastRow}...`, "AI Batch Mode");
+      ss.toast(`⏳ Processing row ${currentRow}/${lastRow}...`, "AI Batch Mode");
       
       const contentText = extractTextFromDrive(url);
       const aiResults = callGemini(contentText);
@@ -61,20 +61,20 @@ function runBatchAutomation() {
       resultRange.setValues([aiResults]);
       resultRange.setWrap(true).setVerticalAlignment("top");
       
-      // Nghỉ một chút để tránh overload API
+      // Sleep a bit to avoid API overload
       Utilities.sleep(2000);
 
     } catch (e) {
-      console.error(`Lỗi hàng ${currentRow}: ` + e.toString());
-      sheet.getRange(currentRow, 2).setValue("Lỗi: " + e.toString());
+      console.error(`Error row ${currentRow}: ` + e.toString());
+      sheet.getRange(currentRow, 2).setValue("Error: " + e.toString());
     }
   }
   
-  ss.toast("✅ Đã xử lý xong toàn bộ danh sách!", "Hoàn tất");
+  ss.toast("✅ Finished processing the entire list!", "Complete");
 }
 
 /**
- * GIỮ LẠI HÀM CHẠY LẺ ĐỂ TEST
+ * KEEP SINGLE RUN FUNCTION FOR TESTING
  */
 function runAutomation() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -84,29 +84,29 @@ function runAutomation() {
   const currentRow = activeCell.getRow();
 
   if (activeCell.getColumn() !== 1 || !url) {
-    ss.toast("⚠️ Chọn ô ở cột A!", "Lỗi");
+    ss.toast("⚠️ Select a cell in column A!", "Error");
     return;
   }
 
   try {
-    ss.toast(`⏳ Đang xử lý hàng ${currentRow}...`, "AI Status");
+    ss.toast(`⏳ Processing row ${currentRow}...`, "AI Status");
     const contentText = extractTextFromDrive(url);
     const aiResults = callGemini(contentText);
     const range = activeCell.offset(0, 1, 1, 3);
     range.setValues([aiResults]);
     range.setWrap(true).setVerticalAlignment("top");
-    ss.toast("✅ Xong!", "AI Status");
+    ss.toast("✅ Done!", "AI Status");
   } catch (e) {
-    activeCell.offset(0, 1).setValue("Lỗi: " + e.toString());
+    activeCell.offset(0, 1).setValue("Error: " + e.toString());
   }
 }
 
 /**
- * TRÍCH XUẤT OCR (Drive API v2)
+ * EXTRACT OCR (Drive API v2)
  */
 function extractTextFromDrive(url) {
   const match = url.match(/[-\w]{25,}/);
-  if (!match) throw new Error("Link Drive không chuẩn.");
+  if (!match) throw new Error("Invalid Drive link.");
   const fileId = match[0];
   const file = DriveApp.getFileById(fileId);
   
@@ -119,7 +119,7 @@ function extractTextFromDrive(url) {
     const resource = { title: "temp_ocr_" + fileId, mimeType: "application/vnd.google-apps.document" };
     const tempDocFile = Drive.Files.insert(resource, blob, { ocr: true });
     const text = DocumentApp.openById(tempDocFile.id).getBody().getText();
-    Drive.Files.remove(tempDocFile.id); 
+    Drive.Files.remove(tempDocFile.id);
     return text.substring(0, 40000);
   } catch (err) {
     return blob.getDataAsString("UTF-8").substring(0, 40000);
@@ -127,10 +127,10 @@ function extractTextFromDrive(url) {
 }
 
 /**
- * GỌI GEMINI VỚI RETRY
+ * CALL GEMINI WITH RETRY
  */
 function callGemini(text) {
-  const prompt = `Bạn là chuyên gia tài chính. Phân tích nội dung và trả về JSON tiếng Việt: {"summary": "...", "risk": "...", "prediction": "..."}. Xuống dòng và gạch đầu dòng (-) cho từng ý. Nội dung: ${text}`;
+  const prompt = `You are a financial expert. Analyze the content and return JSON in English: {"summary": "...", "risk": "...", "prediction": "..."}. Use line breaks and bullet points (-) for each item. Content: ${text}`;
   const payload = { "contents": [{ "parts": [{ "text": prompt }] }] };
   const options = { "method": "post", "contentType": "application/json", "payload": JSON.stringify(payload), "muteHttpExceptions": true };
 
@@ -160,17 +160,17 @@ function callGemini(text) {
 
 /////// CONVERT PDF TO DOC
 /**
- * TỰ ĐỘNG CONVERT TOÀN BỘ PDF TRONG FOLDER SANG GOOGLE DOCS (OCR)
- * M nhập ID của Folder chứa PDF vào đây
+ * AUTOMATICALLY CONVERT ALL PDF IN FOLDER TO GOOGLE DOCS (OCR)
+ * Enter the ID of the Folder containing PDF here
  */
 /**
- * TỰ ĐỘNG CONVERT TOÀN BỘ PDF TRONG FOLDER SANG GOOGLE DOCS (DÙNG DRIVE v3)
+ * AUTOMATICALLY CONVERT ALL PDF IN FOLDER TO GOOGLE DOCS (USE DRIVE v3)
  */
 /**
- * TỰ ĐỘNG CONVERT PDF SANG DOC VÀ LƯU VÀO ĐÚNG FOLDER
+ * AUTOMATICALLY CONVERT PDF TO DOC AND SAVE TO CORRECT FOLDER
  */
 function convertAllPdfInFolder() {
-  const folderId = "1ftPvAWdlN4BuWoGhl8Us3uUNG_C5Z_wy"; // Thay ID của m vào
+  const folderId = "1ftPvAWdlN4BuWoGhl8Us3uUNG_C5Z_wy"; // Replace with your folder ID
   const folder = DriveApp.getFolderById(folderId);
   const files = folder.getFilesByType(MimeType.PDF);
   
@@ -180,34 +180,34 @@ function convertAllPdfInFolder() {
     const file = files.next();
     const fileName = file.getName().replace(".pdf", "");
     
-    // Kiểm tra xem bản Doc đã tồn tại trong folder này chưa
+    // Check if the Doc version already exists in this folder
     const existingDocs = folder.getFilesByName(fileName);
     if (existingDocs.hasNext()) {
-      console.log(`Bỏ qua: ${fileName} đã có bản Doc.`);
+      console.log(`Skipping: ${fileName} already has a Doc version.`);
       continue;
     }
 
     try {
       const blob = file.getBlob();
       
-      // Cấu hình Drive API v3 với PARENTS
+      // Configure Drive API v3 with PARENTS
       const resource = {
         name: fileName,
         mimeType: "application/vnd.google-apps.document",
-        parents: [folderId] // ÉP NÓ VÀO ĐÚNG FOLDER NÀY
+        parents: [folderId] // FORCE IT INTO THE CORRECT FOLDER
       };
       
-      // Gọi v3 create
+      // Call v3 create
       Drive.Files.create(resource, blob, { ocr: true });
       
       count++;
-      console.log(`✅ Đã convert và lưu vào folder: ${fileName}`);
+      console.log(`✅ Successfully converted and saved to folder: ${fileName}`);
     } catch (e) {
-      console.error(`❌ Lỗi file ${fileName}: ` + e.toString());
+      console.error(`❌ Error with file ${fileName}: ` + e.toString());
     }
   }
   
-  console.log(`🏁 Hoàn tất! Đã convert ${count} file vào folder.`);
+  console.log(`🏁 Complete! Converted ${count} files to folder.`);
 }
 
 function listAllDocLinksToSheet() {
@@ -222,9 +222,9 @@ function listAllDocLinksToSheet() {
   }
   
   if (links.length > 0) {
-    // Ghi vào cột A, bắt đầu từ hàng 3
+    // Write to column A, starting from row 3
     sheet.getRange(3, 1, links.length, 1).setValues(links);
-    console.log(`Đã đổ ${links.length} link vào cột A.`);
+    console.log(`Successfully added ${links.length} links to column A.`);
   }
 }
 
