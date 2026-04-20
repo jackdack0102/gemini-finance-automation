@@ -8,10 +8,18 @@ resource "aws_secretsmanager_secret_version" "clasp_auth_val" {
   secret_string = var.google_auth_token
 }
 
+# 1.0 Add GitHub credentials for CodeBuild
+resource "aws_codebuild_source_credential" "github" {
+  auth_type   = "PERSONAL_ACCESS_TOKEN"
+  server_type = "GITHUB"
+  token       = var.github_token
+}
+
 
 #1.1 Add Instance
 resource "aws_instance" "my_instance" {
-  ami           = "ami-005c9e06a21d032e4" 
+  ami           = "ami-005c9e06a21d032e4"
+  instance_type = "t2.micro"
   
   # Attach Instance Profile here
   iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
@@ -101,6 +109,8 @@ resource "aws_codebuild_project" "gemini_deploy" {
     location        = "https://github.com/jackdack0102/gemini-finance-automation.git"
     git_clone_depth = 1
   }
+
+  depends_on = [aws_codebuild_source_credential.github]
 }
 
 # 4.1 Create GitHub Webhook to trigger CodeBuild on push
