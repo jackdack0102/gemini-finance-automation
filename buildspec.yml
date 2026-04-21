@@ -19,7 +19,7 @@ phases:
               access_token: .tokens.default.access_token,
               refresh_token: .tokens.default.refresh_token,
               token_type: "Bearer",
-              expiry_date: (now * 1000 + 3600000)
+              expiry_date: (now * 1000 + 604800000)
             }
           }' > ~/.clasprc.json
 
