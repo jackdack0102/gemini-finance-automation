@@ -130,7 +130,7 @@ function extractTextFromDrive(url) {
  * CALL GEMINI WITH RETRY
  */
 function callGemini(text) {
-  const prompt = `You are a financial expert. Analyze the content and return JSON in English: {"summary": "...", "risk": "...", "prediction": "..."}. Use line breaks and bullet points (-) for each item. Content: ${text}`;
+  const prompt = `You are a financial expert. Analyze the content and return JSON in Vietnames: {"summary": "...", "risk": "...", "prediction": "..."}. Use line breaks and bullet points (-) for each item. Content: ${text}`;
   const payload = { "contents": [{ "parts": [{ "text": prompt }] }] };
   const options = { "method": "post", "contentType": "application/json", "payload": JSON.stringify(payload), "muteHttpExceptions": true };
 
