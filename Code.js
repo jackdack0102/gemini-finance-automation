@@ -130,7 +130,21 @@ function extractTextFromDrive(url) {
  * CALL GEMINI WITH RETRY
  */
 function callGemini(text) {
-  const prompt = `You are a financial expert. Analyze the content and return JSON in Vietnames: {"summary": "...", "risk": "...", "prediction": "..."}. Use line breaks and bullet points (-) for each item. Content: ${text}`;
+  const prompt = `You are a professional financial expert. Analyze the provided content thoroughly. 
+Your output must be a valid JSON object in Vietnamese. 
+Inside the JSON, include the following fields: 
+- "summary": Summarize the content, incorporating key financial data/figures, and clearly categorize the positive and negative impacts.
+- "risk": Identify and analyze specific financial and operational risks.
+- "prediction": Provide a concise short-term outlook based on the data.
+
+Formatting requirements for EACH field:
+- Use line breaks and bullet points (-) for every listed item.
+- Do not include any conversational text, introductions, or markdown code blocks outside the JSON structure.
+
+JSON structure:
+{"summary": "...", "risk": "...", "prediction": "..."}
+
+Content: ${text}`;
   const payload = { "contents": [{ "parts": [{ "text": prompt }] }] };
   const options = { "method": "post", "contentType": "application/json", "payload": JSON.stringify(payload), "muteHttpExceptions": true };
 
@@ -229,5 +243,5 @@ function listAllDocLinksToSheet() {
 }
 
 
-//Push Test 21 Apr 2026
+
 
